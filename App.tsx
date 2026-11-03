@@ -1,20 +1,60 @@
-import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
+import { NavigationContainer } from "@react-navigation/native";
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
+
+import AssistantScreen from "./src/screens/AssistantScreen";
+import HistoryScreen from "./src/screens/HistoryScreen";
+import NotesScreen from "./src/screens/NotesScreen";
+
+export type RootStackParamList = {
+  Assistant: undefined;
+  History: undefined;
+  Notes: undefined;
+};
+
+const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function App() {
   return (
-    <View style={styles.container}>
-      <Text>Open up App.tsx to start working on your app!</Text>
-      <StatusBar style="auto" />
-    </View>
+    <NavigationContainer>
+      <Stack.Navigator
+        initialRouteName="Assistant"
+        screenOptions={{
+          headerStyle: {
+            backgroundColor: "#0a0a0a",
+          },
+          headerTintColor: "#ffffff",
+          headerTitleStyle: {
+            fontWeight: "600",
+          },
+          contentStyle: {
+            backgroundColor: "#000000",
+          },
+        }}
+      >
+        <Stack.Screen
+          name="Assistant"
+          component={AssistantScreen}
+          options={{
+            title: "JARVIS",
+          }}
+        />
+
+        <Stack.Screen
+          name="History"
+          component={HistoryScreen}
+          options={{
+            title: "History",
+          }}
+        />
+
+        <Stack.Screen
+          name="Notes"
+          component={NotesScreen}
+          options={{
+            title: "Notes",
+          }}
+        />
+      </Stack.Navigator>
+    </NavigationContainer>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});
