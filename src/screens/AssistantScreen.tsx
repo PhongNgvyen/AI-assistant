@@ -1,6 +1,6 @@
 import { useState } from "react";
-
 import {
+  ActivityIndicator,
   FlatList,
   KeyboardAvoidingView,
   Platform,
@@ -12,7 +12,9 @@ import {
 } from "react-native";
 
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
+
 import { RootStackParamList } from "../../App";
+import { sendChatMessage } from "../services/api";
 
 type Props = NativeStackScreenProps<
   RootStackParamList,
@@ -32,15 +34,17 @@ export default function AssistantScreen({
 
   const [messages, setMessages] = useState<Message[]>([]);
 
-  const sendMessage = () => {
+  const [loading, setLoading] = useState(false);
+
+  const sendMessage = async () => {
     const message = input.trim();
 
-    if (!message) {
+    if (!message || loading) {
       return;
     }
 
     const userMessage: Message = {
-      id: Date.now().toString(),
+      id: `${Date.now()}-user`,
       role: "user",
       content: message,
     };
@@ -51,21 +55,38 @@ export default function AssistantScreen({
     ]);
 
     setInput("");
+    setLoading(true);
 
-    // Temporary JARVIS response.
-    // Later this will come from our backend + OpenAI.
-    setTimeout(() => {
+    try {
+      const reply = await sendChatMessage(message);
+
       const assistantMessage: Message = {
-        id: (Date.now() + 1).toString(),
+        id: `${Date.now()}-assistant`,
         role: "assistant",
-        content: "Hello. How can I help you?",
+        content: reply,
       };
 
       setMessages((currentMessages) => [
         ...currentMessages,
         assistantMessage,
       ]);
-    }, 500);
+    } catch (error) {
+      console.error("Chat request failed:", error);
+
+      const errorMessage: Message = {
+        id: `${Date.now()}-error`,
+        role: "assistant",
+        content:
+          "Could not connect to JARVIS backend.",
+      };
+
+      setMessages((currentMessages) => [
+        ...currentMessages,
+        errorMessage,
+      ]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const renderMessage = ({
@@ -156,6 +177,16 @@ export default function AssistantScreen({
         />
       )}
 
+      {loading && (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator />
+
+          <Text style={styles.loadingText}>
+            JARVIS is thinking...
+          </Text>
+        </View>
+      )}
+
       <View style={styles.inputArea}>
         <TextInput
           style={styles.input}
@@ -164,11 +195,16 @@ export default function AssistantScreen({
           placeholder="Message JARVIS..."
           placeholderTextColor="#777777"
           multiline
+          editable={!loading}
         />
 
         <Pressable
-          style={styles.sendButton}
+          style={[
+            styles.sendButton,
+            loading && styles.sendButtonDisabled,
+          ]}
           onPress={sendMessage}
+          disabled={loading}
         >
           <Text style={styles.sendButtonText}>
             Send
@@ -240,6 +276,7 @@ const styles = StyleSheet.create({
 
   messageList: {
     padding: 16,
+    paddingBottom: 20,
   },
 
   messageContainer: {
@@ -274,6 +311,19 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
 
+  loadingContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+
+  loadingText: {
+    color: "#737373",
+    fontSize: 14,
+  },
+
   inputArea: {
     flexDirection: "row",
     alignItems: "flex-end",
@@ -302,6 +352,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     paddingVertical: 14,
     borderRadius: 18,
+  },
+
+  sendButtonDisabled: {
+    opacity: 0.5,
   },
 
   sendButtonText: {
